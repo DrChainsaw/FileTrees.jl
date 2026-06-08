@@ -20,11 +20,14 @@ struct NoValue end
 
 Copy over all fields from `tree`, but use any fields provided as keyword arguments.
 
-    FileTree(dirname::String; [sort])
+    FileTree(dirname::String; [sort], [follow_symlinks])
 
-Construct a `FileTree` to reflect directory from disk in the current working directory.
+Construct a `FileTree` reflecting the directory from disk.
 
 If `sort=true` (the default) then each level of the tree will be lexicographically sorted.
+
+If `follow_symlinks=true` (the default) then symbolic links will be followed. Setting this to `false` can dramatically speed up the construction, 
+even if no symbolic links are present.
 """
 struct FileTree
     parent::Union{FileTree, Nothing}
@@ -57,11 +60,11 @@ end
 
 FileTree(dir; kwargs...) = FileTree(nothing, dir; kwargs...)
 
-function FileTree(parent, dir; sort=true, root="")
+function FileTree(parent, dir; sort=true, follow_symlinks=true, root="")
     parent′ = FileTree(parent, dir, [])
-    for (path, dirs, files) in walkdir(joinpath(root, dir)) 
+    for (path, dirs, files) in walkdir(joinpath(root, dir); follow_symlinks) 
         for dir in dirs
-            push!(parent′.children, FileTree(parent′, dir; sort, root=path))
+            push!(parent′.children, FileTree(parent′, dir; sort, follow_symlinks, root=path))
         end
         for file in files
             push!(parent′.children, File(parent′, file))
